@@ -1,0 +1,49 @@
+name: Execute a toolforge deployment
+description: Execute a toolforge deployment
+
+inputs:
+  tool:
+    required: true
+    type: string
+  token:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+      - name: Create deployment
+        shell: bash
+        id: create_deployment
+        run: |
+          set -xeo pipefail
+          deployment_id=$(curl --fail-with-body -X POST 'https://api.svc.toolforge.org/components/v1/tool/${{ inputs.tool }}/deployment?token=${{ inputs.token }}' | jq -r .data.deploy_id)
+          echo "Created deployment: ${deployment_id}"
+          echo "deployment_id=${deployment_id}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deployment completion
+        shell: bash
+        run: |
+          set -xeo pipefail
+          while true;
+          do
+            deployment=$(curl --fail-with-body 'https://api.svc.toolforge.org/components/v1/tool/${{ inputs.tool }}/deployment/${{ steps.create_deployment.outputs.deployment_id }}?token=${{ inputs.token }}')
+            deployment_status=$(echo "${deployment}" | jq -r .data.status)
+            echo "Deployment status: ${deployment_status}"
+          
+            if [ "${deployment_status}" == "successful" ];
+            then
+              echo "Deployment has finished successfully"
+              exit 0
+            fi
+          
+            if [ "${deployment_status}" == "pending" ] || [ "${deployment_status}" == "running" ];
+            then
+              echo "Deployment is pending on in progress"
+              sleep 1
+              continue
+            fi
+          
+            echo "Deployment is not pending, running or successful; probably failed"
+            exit 1
+          done
