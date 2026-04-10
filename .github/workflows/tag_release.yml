@@ -1,8 +1,5 @@
 name: Create Release For Tag
 on: { push: { tags: [ 'v*' ] } }
-permissions:
-  deployments: write
-  contents: write
 jobs:
   create-release:
     runs-on: ubuntu-latest
