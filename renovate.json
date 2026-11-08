@@ -6,6 +6,7 @@
   ],
   "automerge": true,
   "automergeStrategy": "rebase",
+  "ignoreTests": true,
   "packageRules": [
     {
       "description": "Group CI updates",
